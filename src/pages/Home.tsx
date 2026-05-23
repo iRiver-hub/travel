@@ -90,7 +90,7 @@ export default function Home() {
       setCurrentStep(0);
       setShowForm(false);
     }
-  }, [preferences, showForm]);
+  }, [preferences]);
 
   const updateField = <K extends keyof TravelPreferences>(
     field: K,
