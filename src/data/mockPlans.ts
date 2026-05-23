@@ -13,11 +13,13 @@ const transportDatabase: Record<string, Record<string, { outbound: TransportOpti
         { type: 'flight', flightNo: 'CA1407', airline: '中国国际航空', departure: '首都机场T2', arrival: '双流机场T1', departureTime: '06:55', arrivalTime: '09:55', duration: '3h', price: 1010 },
         { type: 'flight', flightNo: 'MU3541', airline: '东方航空', departure: '大兴机场', arrival: '天府机场T2', departureTime: '16:05', arrivalTime: '18:55', duration: '2h50m', price: 1110 },
         { type: 'flight', flightNo: 'CA1421', airline: '中国国际航空', departure: '首都机场T2', arrival: '天府机场T2', departureTime: '12:55', arrivalTime: '16:00', duration: '3h5m', price: 1130 },
+        { type: 'train', trainNo: 'G87', trainType: '高铁', seatType: '二等座', departure: '北京西站', arrival: '成都东站', departureTime: '07:00', arrivalTime: '14:32', duration: '7h32m', price: 840.5 },
       ],
       return: [
         { type: 'flight', flightNo: 'CA1422', airline: '中国国际航空', departure: '天府机场T2', arrival: '首都机场T2', departureTime: '11:30', arrivalTime: '14:15', duration: '2h45m', price: 880 },
         { type: 'flight', flightNo: 'CZ3221', airline: '南方航空', departure: '天府机场T2', arrival: '大兴机场', departureTime: '12:00', arrivalTime: '14:40', duration: '2h40m', price: 920 },
         { type: 'flight', flightNo: '3U8881', airline: '四川航空', departure: '双流机场T1', arrival: '首都机场T2', departureTime: '07:30', arrivalTime: '10:20', duration: '2h50m', price: 960 },
+        { type: 'train', trainNo: 'G90', trainType: '高铁', seatType: '二等座', departure: '成都东站', arrival: '北京西站', departureTime: '14:54', arrivalTime: '22:32', duration: '7h38m', price: 840.5 },
       ],
     },
     上海: {
@@ -236,6 +238,8 @@ const hotelDatabase: Record<string, Record<string, HotelOption[]>> = {
         features: ['管家服务', '健身室', '艺术氛围', '亲子主题房'],
         platform: '携程/美团',
       },
+      ],
+    luxury: [
       {
         name: '成都群光君悦酒店(春熙路太古里店)',
         type: '豪华型酒店',
@@ -247,8 +251,6 @@ const hotelDatabase: Record<string, Record<string, HotelOption[]>> = {
         features: ['五星级', '咖啡厅', '酒吧', '会议室', '观景房'],
         platform: '携程/飞猪',
       },
-    ],
-    luxury: [
       {
         name: '成都博舍酒店',
         type: '奢华精品酒店',
@@ -321,8 +323,6 @@ const hotelDatabase: Record<string, Record<string, HotelOption[]>> = {
         features: ['汉服体验', '免费洗衣', '智能客控', '亲子主题房'],
         platform: '携程/飞猪',
       },
-    ],
-    luxury: [
       {
         name: '西安钟楼饭店',
         type: '四星级酒店',
@@ -334,6 +334,8 @@ const hotelDatabase: Record<string, Record<string, HotelOption[]>> = {
         features: ['钟楼景观房', '旋转餐厅', '历史名店', '中心位置'],
         platform: '携程/美团/飞猪',
       },
+    ],
+    luxury: [
       {
         name: '西安索菲特传奇酒店',
         type: '国际奢华酒店',
@@ -1080,26 +1082,27 @@ function getSeasonMultiplier(startDate: string): SeasonInfo {
   const month = date.getMonth() + 1; // 1-12
   const day = date.getDate();
 
-  // 特殊假期判断
-  const isSpringFestival = (month === 1 && day >= 20) || (month === 2 && day <= 10);
+  // 特殊假期判断（2026年真实日期）
+  // 2026年春节：2月17日除夕，假期2月14日-2月20日
+  const isSpringFestival = month === 2 && day >= 12 && day <= 22;
   const isMayDay = month === 5 && day >= 1 && day <= 5;
   const isNationalDay = month === 10 && day >= 1 && day <= 7;
 
   // 旺季：春节1-2月、暑假7-8月、国庆10月
   if (month === 1 || month === 2 || month === 7 || month === 8 || month === 10) {
     let transportMultiplier = 1.5;
-    let hotelMultiplier = 2.0;
+    let hotelMultiplier = 1.8;
     let label = '旺季';
     let description = '出行高峰期，交通和住宿价格较高';
 
     if (isSpringFestival) {
       transportMultiplier = 1.8;
-      hotelMultiplier = 2.5;
+      hotelMultiplier = 2.3;
       label = '春节旺季';
-      description = '春节假期，机票和酒店价格大幅上涨，建议提前预订';
+      description = '2026年春节假期（2月12日-22日前后），机票和酒店价格大幅上涨，建议提前预订';
     } else if (isNationalDay) {
       transportMultiplier = 1.8;
-      hotelMultiplier = 2.5;
+      hotelMultiplier = 2.3;
       label = '国庆旺季';
       description = '国庆黄金周，机票和酒店价格大幅上涨，景区人流密集';
     } else if (month === 7 || month === 8) {
@@ -1122,7 +1125,7 @@ function getSeasonMultiplier(startDate: string): SeasonInfo {
       season: 'off',
       label: '淡季',
       transportMultiplier: 0.7,
-      hotelMultiplier: 0.7,
+      hotelMultiplier: 0.85,
       description: '出行淡季，机票和酒店价格优惠，性价比最高',
     };
   }
@@ -1134,7 +1137,7 @@ function getSeasonMultiplier(startDate: string): SeasonInfo {
       season: 'peak',
       label: '五一旺季',
       transportMultiplier: 1.6,
-      hotelMultiplier: 2.2,
+      hotelMultiplier: 2.0,
       description: '五一假期，短途游热门，酒店价格明显上涨',
     };
   }
@@ -1238,6 +1241,9 @@ export function generatePlan(preferences: TravelPreferences): TravelPlan {
     hotel: budgetLevel === 'luxury' ? '五星级度假酒店' : budgetLevel === 'comfort' ? '舒适型精品酒店' : '经济型酒店/客栈',
     hostel: '青年旅舍/背包客栈',
     homestay: '特色民宿/客栈',
+    boutique: '精品民宿/客栈',
+    'budget-hotel': '经济型酒店/客栈',
+    'star-hotel': budgetLevel === 'luxury' ? '五星级度假酒店' : budgetLevel === 'comfort' ? '舒适型精品酒店' : '经济型酒店/客栈',
     resort: budgetLevel === 'luxury' ? '奢华度假村' : '度假公寓/酒店',
   };
 

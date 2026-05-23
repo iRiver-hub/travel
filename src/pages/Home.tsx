@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MapPin,
@@ -16,6 +16,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 import { useTravelStore } from '@/store/travelStore';
 import { generatePlan } from '@/data/mockPlans';
@@ -38,12 +39,15 @@ const themeOptions = [
   { value: '休闲度假', label: '休闲度假' },
 ];
 
+const availableCities = ['北京', '上海', '广州', '成都', '西安', '杭州', '南京', '深圳', '武汉', '重庆'];
+
 export default function Home() {
   const navigate = useNavigate();
-  const { setPreferences, setPlan } = useTravelStore();
+  const { setPreferences, setPlan, preferences } = useTravelStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const [formData, setFormData] = useState<TravelPreferences>({
     peopleCount: 2,
@@ -56,12 +60,37 @@ export default function Home() {
     budgetLevel: 'comfort',
     themes: [],
     pace: 'balanced',
-    accommodationType: 'hotel',
+    accommodationType: 'star-hotel',
     transportPreference: 'public',
     specialNeeds: '',
     acceptRedEye: false,
     acceptTransfer: false,
   });
+
+  // 从Plan页返回时重置表单
+  useEffect(() => {
+    if (!preferences && showForm) {
+      setFormData({
+        peopleCount: 2,
+        genderComposition: '',
+        hasChildren: false,
+        hasElderly: false,
+        startDate: '',
+        endDate: '',
+        departureCity: '',
+        budgetLevel: 'comfort',
+        themes: [],
+        pace: 'balanced',
+        accommodationType: 'star-hotel',
+        transportPreference: 'public',
+        specialNeeds: '',
+        acceptRedEye: false,
+        acceptTransfer: false,
+      });
+      setCurrentStep(0);
+      setShowForm(false);
+    }
+  }, [preferences, showForm]);
 
   const updateField = <K extends keyof TravelPreferences>(
     field: K,
@@ -80,11 +109,42 @@ export default function Home() {
   };
 
   const handleNext = () => {
+    setErrors([]);
+    const validationErrors = getValidationErrors();
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
     if (currentStep < steps.length - 1) {
       setCurrentStep((prev) => prev + 1);
     } else {
       handleSubmit();
     }
+  };
+
+  const getValidationErrors = (): string[] => {
+    const errs: string[] = [];
+    switch (currentStep) {
+      case 0:
+        if (formData.peopleCount <= 0) errs.push('请设置出行人数');
+        if (!formData.genderComposition) errs.push('请选择性别构成');
+        break;
+      case 1:
+        if (!formData.startDate) errs.push('请选择出发日期');
+        if (!formData.endDate) errs.push('请选择返程日期');
+        if (formData.startDate && formData.endDate && formData.endDate < formData.startDate)
+          errs.push('返程日期不能早于出发日期');
+        if (!formData.departureCity) errs.push('请选择出发城市');
+        break;
+      case 2:
+        if (formData.themes.length === 0) errs.push('请至少选择一个旅行主题');
+        break;
+      case 3:
+        if (!formData.accommodationType) errs.push('请选择住宿偏好');
+        if (!formData.transportPreference) errs.push('请选择交通偏好');
+        break;
+    }
+    return errs;
   };
 
   const handleBack = () => {
@@ -105,20 +165,7 @@ export default function Home() {
     }, 1500);
   };
 
-  const isStepValid = () => {
-    switch (currentStep) {
-      case 0:
-        return formData.peopleCount > 0 && formData.genderComposition !== '';
-      case 1:
-        return formData.startDate && formData.endDate && formData.departureCity;
-      case 2:
-        return formData.themes.length > 0;
-      case 3:
-        return formData.accommodationType && formData.transportPreference;
-      default:
-        return true;
-    }
-  };
+  const isStepValid = () => getValidationErrors().length === 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-sky-50">
@@ -246,7 +293,7 @@ export default function Home() {
                         {formData.peopleCount}
                       </span>
                       <button
-                        onClick={() => updateField('peopleCount', formData.peopleCount + 1)}
+                        onClick={() => updateField('peopleCount', Math.min(20, formData.peopleCount + 1))}
                         className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center transition-colors"
                       >
                         +
@@ -331,13 +378,16 @@ export default function Home() {
                     <label className="block text-sm font-medium text-stone-700 mb-2">
                       出发城市 <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.departureCity}
                       onChange={(e) => updateField('departureCity', e.target.value)}
-                      placeholder="例如：北京、上海、广州"
-                      className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
-                    />
+                      className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all bg-white"
+                    >
+                      <option value="">请选择出发城市</option>
+                      {availableCities.map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -557,6 +607,16 @@ export default function Home() {
 
               {/* Navigation Buttons */}
               <div className="flex items-center justify-between mt-8 pt-6 border-t border-stone-100">
+                {errors.length > 0 && (
+                  <div className="flex-1 mr-4">
+                    {errors.map((err, i) => (
+                      <div key={i} className="flex items-center gap-1.5 text-sm text-red-600">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span>{err}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <button
                   onClick={handleBack}
                   disabled={currentStep === 0}

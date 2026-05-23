@@ -4,6 +4,36 @@
 
 ---
 
+## [v0.3.1] - 2026-05-23
+
+### 高危问题修复
+- 修复费用明细中门票/餐饮未乘人数导致与总预算不一致
+- 修复住宿费用未按房间数计算
+- 修复成都群光君悦酒店(¥920)从comfort移至luxury等级
+- 修复西安钟楼饭店(¥580)从luxury移至comfort等级
+- 修复淡旺季酒店系数(peak 2.0→1.8, off 0.7→0.85, 五一 2.2→2.0, 特殊假期 2.5→2.3)
+- 修复春节日期硬编码：改为2026年真实日期(2/12-2/22)
+- 新增北京→成都G87/G90高铁数据
+
+### 交互优化
+- Plan.tsx底部新增SeasonInfo季节性价格信息展示
+- Plan.tsx"重新定制"按钮增加确认对话框防止误操作
+- TransportCard/HotelCard从any类型改为TransportOption/HotelOption
+- 调整方案住宿选项与Home页统一(budget-hotel/boutique/star-hotel等)
+- accommodationTypeMap扩展支持所有住宿类型值
+
+### 表单优化
+- 出发城市改为下拉选择(北京/上海/广州等10个城市)
+- 新增逐项表单验证错误提示(AlertCircle图标)
+- 新增日期合法性校验(返程不能早于出发)
+- 人数上限设为20人
+- 从Plan页返回时自动重置表单状态
+
+### 其他
+- package.json项目名称从"trae-project"改为"travel-planner"
+
+---
+
 ## [v0.3.0] - 2026-05-23
 
 ### 数据修正

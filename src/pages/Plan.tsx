@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { useTravelStore } from '@/store/travelStore';
 import { generatePlan } from '@/data/mockPlans';
-import type { TravelPreferences } from '@/types/travel';
+import type { TravelPreferences, TransportOption, HotelOption } from '@/types/travel';
 
 const activityTypeConfig = {
   sight: { icon: Mountain, color: 'bg-teal-100 text-teal-700', label: '景点' },
@@ -44,7 +44,7 @@ function TransportIcon({ type }: { type: string }) {
   return <Bus className="w-4 h-4" />;
 }
 
-function TransportCard({ option, direction }: { option: any; direction: string }) {
+function TransportCard({ option, direction }: { option: TransportOption; direction: string }) {
   const isFlight = option.type === 'flight';
   return (
     <div className="border border-stone-100 rounded-xl p-4 hover:shadow-md transition-shadow bg-white">
@@ -88,7 +88,7 @@ function TransportCard({ option, direction }: { option: any; direction: string }
   );
 }
 
-function HotelCard({ hotel }: { hotel: any }) {
+function HotelCard({ hotel }: { hotel: HotelOption }) {
   return (
     <div className="border border-stone-100 rounded-xl p-4 hover:shadow-md transition-shadow bg-white">
       <div className="flex items-start justify-between mb-3">
@@ -144,7 +144,7 @@ export default function Plan() {
   // 调整偏好的本地状态
   const [adjustBudget, setAdjustBudget] = useState<TravelPreferences['budgetLevel']>('comfort');
   const [adjustPace, setAdjustPace] = useState<TravelPreferences['pace']>('balanced');
-  const [adjustAccommodation, setAdjustAccommodation] = useState<string>('hotel');
+  const [adjustAccommodation, setAdjustAccommodation] = useState<string>('star-hotel');
   const [isRegenerating, setIsRegenerating] = useState(false);
 
   // 当 preferences 变化时，同步本地调整状态
@@ -164,7 +164,11 @@ export default function Plan() {
 
   if (!plan || !preferences) return null;
 
+  const peopleCount = preferences.peopleCount;
+  const roomCount = Math.ceil(peopleCount / 2);
+
   const handleBack = () => {
+    if (!window.confirm('确定要重新定制行程吗？当前方案将丢失。')) return;
     reset();
     navigate('/');
   };
@@ -291,6 +295,36 @@ export default function Plan() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-12 space-y-12">
+        {/* Season Info Banner */}
+        <div className={`rounded-2xl p-4 flex items-center gap-4 ${
+          plan.seasonInfo.season === 'peak' ? 'bg-orange-50 border border-orange-200' :
+          plan.seasonInfo.season === 'off' ? 'bg-green-50 border border-green-200' :
+          'bg-blue-50 border border-blue-200'
+        }`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            plan.seasonInfo.season === 'peak' ? 'bg-orange-100 text-orange-600' :
+            plan.seasonInfo.season === 'off' ? 'bg-green-100 text-green-600' :
+            'bg-blue-100 text-blue-600'
+          }`}>
+            <Sun className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                plan.seasonInfo.season === 'peak' ? 'bg-orange-100 text-orange-700' :
+                plan.seasonInfo.season === 'off' ? 'bg-green-100 text-green-700' :
+                'bg-blue-100 text-blue-700'
+              }`}>
+                {plan.seasonInfo.label}
+              </span>
+              <span className="text-sm text-stone-500">
+                交通系数 ×{plan.seasonInfo.transportMultiplier} · 酒店系数 ×{plan.seasonInfo.hotelMultiplier}
+              </span>
+            </div>
+            <p className="text-sm text-stone-600 mt-1">{plan.seasonInfo.description}</p>
+          </div>
+        </div>
+
         {/* Daily Itinerary */}
         <section>
           <h2 className="text-2xl font-bold text-stone-800 mb-6 flex items-center gap-2">
@@ -548,13 +582,14 @@ export default function Plan() {
               </div>
               <div className="flex items-center justify-between py-2 border-b border-stone-100">
                 <span className="text-stone-600">
-                  住宿费用（{plan.totalDays - 1}晚）
+                  住宿费用（{plan.totalDays - 1}晚 × {roomCount}间）
                 </span>
                 <span className="font-semibold text-stone-800">
                   ¥
                   {(
                     plan.accommodation.pricePerNight *
-                    (plan.totalDays - 1)
+                    (plan.totalDays - 1) *
+                    roomCount
                   ).toLocaleString()}
                 </span>
               </div>
@@ -562,22 +597,24 @@ export default function Plan() {
                 <span className="text-stone-600">景点门票</span>
                 <span className="font-semibold text-stone-800">
                   ¥
-                  {plan.dailyPlans
-                    .flatMap((d) => d.activities)
-                    .filter((a) => a.type === 'sight')
-                    .reduce((sum, a) => sum + a.cost, 0)
-                    .toLocaleString()}
+                  {(
+                    plan.dailyPlans
+                      .flatMap((d) => d.activities)
+                      .filter((a) => a.type === 'sight')
+                      .reduce((sum, a) => sum + a.cost, 0) * peopleCount
+                  ).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-stone-100">
                 <span className="text-stone-600">餐饮费用</span>
                 <span className="font-semibold text-stone-800">
                   ¥
-                  {plan.dailyPlans
-                    .flatMap((d) => d.activities)
-                    .filter((a) => a.type === 'food')
-                    .reduce((sum, a) => sum + a.cost, 0)
-                    .toLocaleString()}
+                  {(
+                    plan.dailyPlans
+                      .flatMap((d) => d.activities)
+                      .filter((a) => a.type === 'food')
+                      .reduce((sum, a) => sum + a.cost, 0) * peopleCount
+                  ).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between py-3 bg-teal-50 rounded-xl px-4">
@@ -683,10 +720,11 @@ export default function Plan() {
                   </label>
                   <div className="flex flex-col gap-2">
                     {[
-                      { value: 'hotel', label: '酒店' },
-                      { value: 'homestay', label: '民宿' },
+                      { value: 'hostel', label: '青年旅舍' },
+                      { value: 'budget-hotel', label: '经济酒店' },
+                      { value: 'boutique', label: '精品民宿' },
+                      { value: 'star-hotel', label: '星级酒店' },
                       { value: 'resort', label: '度假村' },
-                      { value: 'hostel', label: '青旅' },
                     ].map((option) => (
                       <button
                         key={option.value}
